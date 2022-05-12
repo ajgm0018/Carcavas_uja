@@ -14,6 +14,7 @@ import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 import math
+import matplotlib as mpl
 
 import xgboost as xgb
 from xgboost import plot_importance
@@ -129,7 +130,7 @@ def tratamiento_datos_SantoTome(datos):
     return datos
 
 def tratamiento_datos_sin_tocar_SantoTome(datos):
-    print("\n-- Tratamiento datos sin tocar Santo Tome --\n")
+    print("\n-- Tratamiento datos sin tocar Santo Tome --")
 
     # Estos cambios dan igual, se eliminan en el mapa es por que sean string
     datos.loc[datos.Carcavas == 128, "Geologia"] = "Codigo_9002"
@@ -292,7 +293,7 @@ def tratamiento_datos_Berrueco(datos):
     return datos
 
 def tratamiento_datos_sin_tocar_Berrueco(datos):
-    print("\n-- Tratamiento datos sin tocar Berrueco --\n")
+    print("\n-- Tratamiento datos sin tocar Berrueco --")
 
     datos = datos[datos['Arcillas'] >= 0]
     datos = datos[datos['Carbono_Organico'] >= 0]
@@ -473,7 +474,7 @@ def tratamiento_datos_Lupion(datos):
     return datos
 
 def tratamiento_datos_sin_tocar_Lupion(datos):
-    print("\n-- Tratamiento datos sin tocar Lupion --\n")
+    print("\n-- Tratamiento datos sin tocar Lupion --")
 
     datos = datos[datos['Lupi_11_9999'] != -9999]
     datos = datos[datos['Altitud'] >= 0]
@@ -686,15 +687,7 @@ def tratamiento_datos_Rentillas(datos):
     return datos
 
 def tratamiento_datos_sin_tocar_Rentillas(datos):
-    print("\n-- Tratamiento datos sin tocar Rentillas --\n")
-
-    datos = datos[datos['Carcavas'] != -9999]
-    datos = datos[datos['Altitud'] >= 0 ]
-    datos = datos[datos['Arcillas'] >= 0]
-    datos = datos[datos['Carbonatos'] >= 0]
-    datos = datos[datos['Carbono_Organico'] >= 0]
-    datos = datos[datos['Distancia_Carreteras'] >= 0]
-    datos = datos[datos['Orientaciones'] >= 0]
+    print("\n-- Tratamiento datos sin tocar Rentillas --")
     
     # Estos cambios dan igual, se eliminan en el mapa es por que sean string
     datos.loc[datos.Carcavas == -9999, "Geologia"] = "Codigo_9002"
@@ -879,7 +872,7 @@ def dibujo_mapa(zona, prediccion_prob, datos_para_dibujado, x, y):
         
     if(zona == "Rentillas"):
         for i in datos_para_dibujado.index:
-            if datos_para_dibujado["Carcavas"][i] == -9999 or datos_para_dibujado["Altitud"][i] < 0 or datos_para_dibujado["Distancia_Carreteras"][i] < 0 or datos_para_dibujado["Arcillas"][i] < 0 or datos_para_dibujado["Carbonatos"][i] < 0 or datos_para_dibujado["Carbono_Organico"][i] < 0 or datos_para_dibujado["Orientaciones"][i] < 0 :
+            if datos_para_dibujado["Carcavas"][i] == -9999 or datos_para_dibujado["Altitud"][i] < 0 or datos_para_dibujado["Distancia_Carreteras"][i] < 0 or datos_para_dibujado["Carbono_Organico"][i] < 0 or datos_para_dibujado["Orientaciones"][i] < 0 :                
                 array_color[i] = 0
                 
     # Comiendo de dibujo
@@ -888,6 +881,45 @@ def dibujo_mapa(zona, prediccion_prob, datos_para_dibujado, x, y):
     plt.rcParams['image.cmap'] = 'jet'
     plt.figure(figsize=(14,14))
     plt.imshow(SalidaDibujo, vmin=0, vmax=1)
+    
+    return array_color
+
+def dibujar_mapa_2(prediccion, x, y):
+
+    cmap = mpl.colors.ListedColormap(['green','limegreen','yellow','orange','darkgoldenrod','red','black'])
+    bins = [0.0, 0.05, 0.2, 0.4, 0.7, 0.8, 1.0]
+
+    norm = mpl.colors.BoundaryNorm(boundaries=bins, ncolors=len(cmap.colors)-1 )
+
+    SalidaDibujo = np.reshape(prediccion, (y,x))
+    
+    x = np.arange(0, x, 1)
+    y = np.arange(0, y, 1)
+    
+    fig, ax = plt.subplots(figsize=(14,14))
+    ax.pcolormesh(x, y, SalidaDibujo, cmap = cmap, norm=norm, shading='flat')
+
+    fig.show()
+    return SalidaDibujo
+
+def dibujarCustomBar():
+    fig, ax = plt.subplots(figsize=(6, 1))
+    fig.subplots_adjust(bottom=0.5)
+
+    cmap = mpl.colors.ListedColormap(['green','limegreen','yellow','orange','darkgoldenrod','red','black'])
+    cmap.set_over('0.25')
+    cmap.set_under('0.75')
+
+    bounds = [0.0, 0.05, 0.2, 0.4, 0.7, 0.8, 1.0]
+    norm = mpl.colors.BoundaryNorm(bounds, cmap.N)
+    cb2 = mpl.colorbar.ColorbarBase(ax, cmap=cmap,
+                                    norm=norm,
+                                    boundaries=[0] + bounds + [13],
+                                    extend='both',
+                                    ticks=bounds,
+                                    spacing='proportional',
+                                    orientation='horizontal')
+    fig.show()
 
 # -- PARAMETROS -- #
 
@@ -896,6 +928,7 @@ profundidad = 6
 estimadores = 150
 
 # -- MAIN -- #
+
 
 # Cargamos los datos y tratamiento de -- SANTO TOME --
 dir_SantoTome = "Raster/SantoTome_final"
@@ -939,12 +972,12 @@ del datos_Lupion
 # Eliminacion de variables
 datos = eliminacion_variables(datos)
 datos_sin_tocar_Rentillas = eliminacion_variables(datos_sin_tocar_Rentillas)
+datos_Rentillas_dibujado = eliminacion_variables(datos_Rentillas_dibujado)
 
 
 # Separacion de datos en X e Y
 Y = datos.Carcavas
 datos = datos.drop(['Carcavas'], axis=1)
-datos_sin_tocar_Rentillas = datos_sin_tocar_Rentillas.drop(['Carcavas'], axis=1)
 X = datos 
 
 
@@ -965,6 +998,24 @@ prediccion_prob = modelo.predict_proba(datos_sin_tocar_Rentillas)
 
 
 # Mapa de susceptibilidad
-dibujo_mapa("Rentillas", prediccion_prob, datos_Rentillas_dibujado, x_Rentillas, y_Rentillas)
+array_color = dibujo_mapa("Rentillas", prediccion_prob, datos_Rentillas_dibujado, x_Rentillas, y_Rentillas)
+
+
+# Mapa de susceptibilidad 2
+dibujar_mapa_2(array_color, x_Rentillas-1, y_Rentillas-1)
+
+
+# Custom bar
+dibujarCustomBar()
+
+
+
+
+
+
+
+
+
+
 
 
