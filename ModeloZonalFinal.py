@@ -131,10 +131,26 @@ def tratamiento_datos_SantoTome(datos):
 def tratamiento_datos_sin_tocar_SantoTome(datos):
     print("\n-- Tratamiento datos sin tocar Santo Tome --\n")
 
-    datos = datos[datos['Arcillas'] >= 0]
-    datos = datos[datos['Distancia_Carreteras'] >= 0]
-    datos = datos[datos['Geologia'] != 0]
-    datos = datos[datos['Orientaciones'] >= 0]
+    # Estos cambios dan igual, se eliminan en el mapa es por que sean string
+    datos.loc[datos.Carcavas == 128, "Geologia"] = "Codigo_9002"
+    datos.loc[datos.Carcavas == 128, "Usos_Del_Suelo"] = "Cursos_agua"
+    datos.loc[datos.Carcavas == 128, "Unidades_Edaficas"] = "Codigo_22"
+    
+    datos.loc[datos.Arcillas < 0, "Geologia"] = "Codigo_9002"
+    datos.loc[datos.Arcillas < 0, "Usos_Del_Suelo"] = "Cursos_agua"
+    datos.loc[datos.Arcillas < 0, "Unidades_Edaficas"] = "Codigo_22"
+    
+    datos.loc[datos.Distancia_Carreteras < 0, "Geologia"] = "Codigo_9002"
+    datos.loc[datos.Distancia_Carreteras < 0, "Usos_Del_Suelo"] = "Cursos_agua"
+    datos.loc[datos.Distancia_Carreteras < 0, "Unidades_Edaficas"] = "Codigo_22"
+    
+    datos.loc[datos.Geologia == 0, "Geologia"] = "Codigo_9002"
+    datos.loc[datos.Geologia == 0, "Usos_Del_Suelo"] = "Cursos_agua"
+    datos.loc[datos.Geologia == 0, "Unidades_Edaficas"] = "Codigo_22"
+    
+    datos.loc[datos.Orientaciones < 0, "Geologia"] = "Codigo_9002"
+    datos.loc[datos.Orientaciones < 0, "Usos_Del_Suelo"] = "Cursos_agua"
+    datos.loc[datos.Orientaciones < 0, "Unidades_Edaficas"] = "Codigo_22"
     
     # Geología
     datos.loc[datos.Geologia == 1, "Geologia"] = "Codigo_9131"
@@ -275,6 +291,67 @@ def tratamiento_datos_Berrueco(datos):
 
     return datos
 
+def tratamiento_datos_sin_tocar_Berrueco(datos):
+    print("\n-- Tratamiento datos sin tocar Berrueco --\n")
+
+    datos = datos[datos['Arcillas'] >= 0]
+    datos = datos[datos['Carbono_Organico'] >= 0]
+    datos = datos[datos['Orientaciones'] >= 0]
+    
+    # Estos cambios dan igual, se eliminan en el mapa es por que sean string
+    datos.loc[datos.Arcillas < 0, "Geologia"] = "Codigo_9002"
+    datos.loc[datos.Arcillas < 0, "Usos_Del_Suelo"] = "Cursos_agua"
+    datos.loc[datos.Arcillas < 0, "Unidades_Edaficas"] = "Codigo_22"
+
+    datos.loc[datos.Carbono_Organico < 0, "Geologia"] = "Codigo_9002"
+    datos.loc[datos.Carbono_Organico < 0, "Usos_Del_Suelo"] = "Cursos_agua"
+    datos.loc[datos.Carbono_Organico < 0, "Unidades_Edaficas"] = "Codigo_22"
+    
+    datos.loc[datos.Orientaciones < 0, "Geologia"] = "Codigo_9002"
+    datos.loc[datos.Orientaciones < 0, "Usos_Del_Suelo"] = "Cursos_agua"
+    datos.loc[datos.Orientaciones < 0, "Unidades_Edaficas"] = "Codigo_22"
+    
+    datos = datos.round(4) 
+    
+    # Geología
+    datos.loc[datos.Geologia == 9001, "Geologia"] = "Codigo_9001"
+    datos.loc[datos.Geologia == 9004, "Geologia"] = "Codigo_9004"
+    datos.loc[datos.Geologia == 9103, "Geologia"] = "Codigo_9103"
+    datos.loc[datos.Geologia == 9132, "Geologia"] = "Codigo_9132"
+    datos.loc[datos.Geologia == 9133, "Geologia"] = "Codigo_9133"
+    datos.loc[datos.Geologia == 9134, "Geologia"] = "Codigo_9134"
+    datos.loc[datos.Geologia == 9201, "Geologia"] = "Codigo_9201"
+    datos.loc[datos.Geologia == 9202, "Geologia"] = "Codigo_9202"
+    
+    # Unidades edáficas
+    datos.loc[datos.Unidades_Edaficas == 1, "Unidades_Edaficas"] = "Codigo_23"
+    datos.loc[datos.Unidades_Edaficas == 2, "Unidades_Edaficas"] = "Codigo_49"
+    datos.loc[datos.Unidades_Edaficas == 3, "Unidades_Edaficas"] = "Codigo_11"
+    datos.loc[datos.Unidades_Edaficas == 4, "Unidades_Edaficas"] = "Codigo_48"
+    datos.loc[datos.Unidades_Edaficas == 5, "Unidades_Edaficas"] = "Codigo_21"
+    datos.loc[datos.Unidades_Edaficas == 6, "Unidades_Edaficas"] = "Codigo_13"
+    
+    # Usos del suelo
+    datos.loc[datos.Usos_Del_Suelo == 1, "Usos_Del_Suelo"] = "Tejido_urbano"
+    datos.loc[datos.Usos_Del_Suelo == 2, "Usos_Del_Suelo"] = "Olivares"
+    datos.loc[datos.Usos_Del_Suelo == 3, "Usos_Del_Suelo"] = "Cultivos_permanentes"
+    datos.loc[datos.Usos_Del_Suelo == 4, "Usos_Del_Suelo"] = "Pastizales"
+
+    del datos['Carcavas']
+
+    # Label Encoder
+    datos["Geologia"] = datos["Geologia"].astype("category")
+    datos["Usos_Del_Suelo"] = datos["Usos_Del_Suelo"].astype("category")
+    datos["Unidades_Edaficas"] = datos["Unidades_Edaficas"].astype("category")
+    
+    categorical_cols = ['Geologia', 'Usos_Del_Suelo', 'Unidades_Edaficas']
+    
+    le = LabelEncoder()
+    
+    datos[categorical_cols] = datos[categorical_cols].apply(lambda col: le.fit_transform(col)) 
+
+    return datos
+
 def cargar_datos_Lupion(path):
     print("\n-- Cargando datos Lupion --")
     dir = path
@@ -395,6 +472,108 @@ def tratamiento_datos_Lupion(datos):
     
     return datos
 
+def tratamiento_datos_sin_tocar_Lupion(datos):
+    print("\n-- Tratamiento datos sin tocar Lupion --\n")
+
+    datos = datos[datos['Lupi_11_9999'] != -9999]
+    datos = datos[datos['Altitud'] >= 0]
+    datos = datos[datos['Arcillas'] >= 0]
+    datos = datos[datos['Carbonatos'] >= 0]
+    datos = datos[datos['Carbono_Organico'] >= 0]
+    datos = datos[datos['Carcavas'] != 255]
+    datos = datos[datos['Curvatura_Perfil'] != -3.4028230607370965e+38]
+    datos = datos[datos['Distancia_Carreteras'] >= 0]
+    datos = datos[datos['Orientaciones'] >= 0]
+    datos = datos[datos['Overland_Flow_Distance'] != -99999.0]
+    
+    # Estos cambios dan igual, se eliminan en el mapa es por que sean string
+    datos.loc[datos.Lupi_11_9999 == -9999, "Geologia"] = "Codigo_9002"
+    datos.loc[datos.Lupi_11_9999 == -9999, "Usos_Del_Suelo"] = "Cursos_agua"
+    datos.loc[datos.Lupi_11_9999 == -9999, "Unidades_Edaficas"] = "Codigo_22"
+    
+    datos.loc[datos.Altitud < 0, "Geologia"] = "Codigo_9002"
+    datos.loc[datos.Altitud < 0, "Usos_Del_Suelo"] = "Cursos_agua"
+    datos.loc[datos.Altitud < 0, "Unidades_Edaficas"] = "Codigo_22"
+    
+    datos.loc[datos.Arcillas < 0, "Geologia"] = "Codigo_9002"
+    datos.loc[datos.Arcillas < 0, "Usos_Del_Suelo"] = "Cursos_agua"
+    datos.loc[datos.Arcillas < 0, "Unidades_Edaficas"] = "Codigo_22"
+    
+    datos.loc[datos.Carbonatos < 0, "Geologia"] = "Codigo_9002"
+    datos.loc[datos.Carbonatos < 0, "Usos_Del_Suelo"] = "Cursos_agua"
+    datos.loc[datos.Carbonatos < 0, "Unidades_Edaficas"] = "Codigo_22"
+    
+    datos.loc[datos.Carbono_Organico < 0, "Geologia"] = "Codigo_9002"
+    datos.loc[datos.Carbono_Organico < 0, "Usos_Del_Suelo"] = "Cursos_agua"
+    datos.loc[datos.Carbono_Organico < 0, "Unidades_Edaficas"] = "Codigo_22"
+    
+    datos.loc[datos.Carcavas == 255, "Geologia"] = "Codigo_9002"
+    datos.loc[datos.Carcavas == 255, "Usos_Del_Suelo"] = "Cursos_agua"
+    datos.loc[datos.Carcavas == 255, "Unidades_Edaficas"] = "Codigo_22"
+    
+    datos.loc[datos.Curvatura_Perfil == -3.4028230607370965e+38, "Geologia"] = "Codigo_9002"
+    datos.loc[datos.Curvatura_Perfil == -3.4028230607370965e+38, "Usos_Del_Suelo"] = "Cursos_agua"
+    datos.loc[datos.Curvatura_Perfil == -3.4028230607370965e+38, "Unidades_Edaficas"] = "Codigo_22"
+    
+    datos.loc[datos.Distancia_Carreteras < 0, "Geologia"] = "Codigo_9002"
+    datos.loc[datos.Distancia_Carreteras < 0, "Usos_Del_Suelo"] = "Cursos_agua"
+    datos.loc[datos.Distancia_Carreteras < 0, "Unidades_Edaficas"] = "Codigo_22"
+    
+    datos.loc[datos.Orientaciones < 0, "Geologia"] = "Codigo_9002"
+    datos.loc[datos.Orientaciones < 0, "Usos_Del_Suelo"] = "Cursos_agua"
+    datos.loc[datos.Orientaciones < 0, "Unidades_Edaficas"] = "Codigo_22"
+    
+    datos.loc[datos.Overland_Flow_Distance == -99999.0, "Geologia"] = "Codigo_9002"
+    datos.loc[datos.Overland_Flow_Distance == -99999.0, "Usos_Del_Suelo"] = "Cursos_agua"
+    datos.loc[datos.Overland_Flow_Distance == -99999.0, "Unidades_Edaficas"] = "Codigo_22"
+    
+    
+    # Geología
+    datos.loc[datos.Geologia == 8996, "Geologia"] = "Codigo_8996"
+    datos.loc[datos.Geologia == 9000, "Geologia"] = "Codigo_9000"
+    datos.loc[datos.Geologia == 9001, "Geologia"] = "Codigo_9001"
+    datos.loc[datos.Geologia == 9002, "Geologia"] = "Codigo_9002"
+    datos.loc[datos.Geologia == 9003, "Geologia"] = "Codigo_9003"
+    datos.loc[datos.Geologia == 9004, "Geologia"] = "Codigo_9004"
+    datos.loc[datos.Geologia == 9133, "Geologia"] = "Codigo_9133"
+    datos.loc[datos.Geologia == 9134, "Geologia"] = "Codigo_9134"
+    
+    # Usos del suelo
+    datos.loc[datos.Usos_Del_Suelo == 1, "Usos_Del_Suelo"] = "Tejido_urbano"
+    datos.loc[datos.Usos_Del_Suelo == 2, "Usos_Del_Suelo"] = "Labor_secano"
+    datos.loc[datos.Usos_Del_Suelo == 3, "Usos_Del_Suelo"] = "Tierras_regadas"
+    datos.loc[datos.Usos_Del_Suelo == 4, "Usos_Del_Suelo"] = "Frutales"
+    datos.loc[datos.Usos_Del_Suelo == 5, "Usos_Del_Suelo"] = "Olivares"
+    datos.loc[datos.Usos_Del_Suelo == 6, "Usos_Del_Suelo"] = "Cultivos_permanentes"
+    datos.loc[datos.Usos_Del_Suelo == 7, "Usos_Del_Suelo"] = "Mosaicos_cultivos"
+    datos.loc[datos.Usos_Del_Suelo == 8, "Usos_Del_Suelo"] = "Vegetacion"
+    datos.loc[datos.Usos_Del_Suelo == 9, "Usos_Del_Suelo"] = "Cursos_agua"
+    
+    # Unidades edaficas
+    datos.loc[datos.Unidades_Edaficas == 1, "Unidades_Edaficas"] = "Codigo_48"
+    datos.loc[datos.Unidades_Edaficas == 2, "Unidades_Edaficas"] = "Codigo_42"
+    datos.loc[datos.Unidades_Edaficas == 3, "Unidades_Edaficas"] = "Codigo_44"
+    datos.loc[datos.Unidades_Edaficas == 4, "Unidades_Edaficas"] = "Codigo_58"
+    datos.loc[datos.Unidades_Edaficas == 5, "Unidades_Edaficas"] = "Codigo_23"
+    datos.loc[datos.Unidades_Edaficas == 6, "Unidades_Edaficas"] = "Codigo_2"
+    
+    del datos['Lupi_11_9999']
+    del datos['Carcavas']
+    datos = datos.round(4) 
+    
+    # Label Encoder
+    datos["Geologia"] = datos["Geologia"].astype("category")
+    datos["Usos_Del_Suelo"] = datos["Usos_Del_Suelo"].astype("category")
+    datos["Unidades_Edaficas"] = datos["Unidades_Edaficas"].astype("category")
+    
+    categorical_cols = ['Geologia', 'Usos_Del_Suelo', 'Unidades_Edaficas']
+    
+    le = LabelEncoder()
+    
+    datos[categorical_cols] = datos[categorical_cols].apply(lambda col: le.fit_transform(col)) 
+    
+    return datos
+
 def cargar_datos_Rentillas(path):
     print("\n-- Cargando datos Rentillas --")
     dir = path
@@ -492,6 +671,86 @@ def tratamiento_datos_Rentillas(datos):
     print("Número de datos despues del tratamiento ", datos.size)
     
     datos = datos.round(4) 
+    
+    # Label Encoder
+    datos["Geologia"] = datos["Geologia"].astype("category")
+    datos["Usos_Del_Suelo"] = datos["Usos_Del_Suelo"].astype("category")
+    datos["Unidades_Edaficas"] = datos["Unidades_Edaficas"].astype("category")
+    
+    categorical_cols = ['Geologia', 'Usos_Del_Suelo', 'Unidades_Edaficas']
+    
+    le = LabelEncoder()
+    
+    datos[categorical_cols] = datos[categorical_cols].apply(lambda col: le.fit_transform(col)) 
+    
+    return datos
+
+def tratamiento_datos_sin_tocar_Rentillas(datos):
+    print("\n-- Tratamiento datos sin tocar Rentillas --\n")
+
+    datos = datos[datos['Carcavas'] != -9999]
+    datos = datos[datos['Altitud'] >= 0 ]
+    datos = datos[datos['Arcillas'] >= 0]
+    datos = datos[datos['Carbonatos'] >= 0]
+    datos = datos[datos['Carbono_Organico'] >= 0]
+    datos = datos[datos['Distancia_Carreteras'] >= 0]
+    datos = datos[datos['Orientaciones'] >= 0]
+    
+    # Estos cambios dan igual, se eliminan en el mapa es por que sean string
+    datos.loc[datos.Carcavas == -9999, "Geologia"] = "Codigo_9002"
+    datos.loc[datos.Carcavas == -9999, "Usos_Del_Suelo"] = "Cursos_agua"
+    datos.loc[datos.Carcavas == -9999, "Unidades_Edaficas"] = "Codigo_22"
+    
+    datos.loc[datos.Altitud < 0, "Geologia"] = "Codigo_9002"
+    datos.loc[datos.Altitud < 0, "Usos_Del_Suelo"] = "Cursos_agua"
+    datos.loc[datos.Altitud < 0, "Unidades_Edaficas"] = "Codigo_22"
+    
+    datos.loc[datos.Arcillas < 0, "Geologia"] = "Codigo_9002"
+    datos.loc[datos.Arcillas < 0, "Usos_Del_Suelo"] = "Cursos_agua"
+    datos.loc[datos.Arcillas < 0, "Unidades_Edaficas"] = "Codigo_22"
+    
+    datos.loc[datos.Carbonatos < 0, "Geologia"] = "Codigo_9002"
+    datos.loc[datos.Carbonatos < 0, "Usos_Del_Suelo"] = "Cursos_agua"
+    datos.loc[datos.Carbonatos < 0, "Unidades_Edaficas"] = "Codigo_22"
+    
+    datos.loc[datos.Carbono_Organico < 0, "Geologia"] = "Codigo_9002"
+    datos.loc[datos.Carbono_Organico < 0, "Usos_Del_Suelo"] = "Cursos_agua"
+    datos.loc[datos.Carbono_Organico < 0, "Unidades_Edaficas"] = "Codigo_22"
+    
+    datos.loc[datos.Distancia_Carreteras < 0, "Geologia"] = "Codigo_9002"
+    datos.loc[datos.Distancia_Carreteras < 0, "Usos_Del_Suelo"] = "Cursos_agua"
+    datos.loc[datos.Distancia_Carreteras < 0, "Unidades_Edaficas"] = "Codigo_22"
+    
+    datos.loc[datos.Orientaciones < 0, "Geologia"] = "Codigo_9002"
+    datos.loc[datos.Orientaciones < 0, "Usos_Del_Suelo"] = "Cursos_agua"
+    datos.loc[datos.Orientaciones < 0, "Unidades_Edaficas"] = "Codigo_22"
+    
+    # Geología
+    datos.loc[datos.Geologia == 9000, "Geologia"] = "Codigo_9000"
+    datos.loc[datos.Geologia == 9001, "Geologia"] = "Codigo_9001"
+    datos.loc[datos.Geologia == 9002, "Geologia"] = "Codigo_9002"
+    datos.loc[datos.Geologia == 9003, "Geologia"] = "Codigo_9003"
+    datos.loc[datos.Geologia == 9101, "Geologia"] = "Codigo_9101"
+    datos.loc[datos.Geologia == 9102, "Geologia"] = "Codigo_9102"
+    datos.loc[datos.Geologia == 9133, "Geologia"] = "Codigo_9133"
+    datos.loc[datos.Geologia == 9134, "Geologia"] = "Codigo_9134"
+    
+    # Usos del suelo
+    datos.loc[datos.Usos_Del_Suelo == 1, "Usos_Del_Suelo"] = "Cursos_agua"
+    datos.loc[datos.Usos_Del_Suelo == 2, "Usos_Del_Suelo"] = "Mosaicos_cultivos"
+    datos.loc[datos.Usos_Del_Suelo == 3, "Usos_Del_Suelo"] = "Olivares"
+    datos.loc[datos.Usos_Del_Suelo == 4, "Usos_Del_Suelo"] = "Tierras_regadas"
+    datos.loc[datos.Usos_Del_Suelo == 5, "Usos_Del_Suelo"] = "Labor_secano"
+    
+    # Unidades edaficas
+    datos.loc[datos.Unidades_Edaficas == 1, "Unidades_Edaficas"] = "Codigo_47"
+    datos.loc[datos.Unidades_Edaficas == 2, "Unidades_Edaficas"] = "Codigo_37"
+    datos.loc[datos.Unidades_Edaficas == 3, "Unidades_Edaficas"] = "Codigo_48"
+    datos.loc[datos.Unidades_Edaficas == 4, "Unidades_Edaficas"] = "Codigo_2"
+    
+    datos = datos.round(4) 
+    
+    del datos['Carcavas']
     
     # Label Encoder
     datos["Geologia"] = datos["Geologia"].astype("category")
@@ -642,24 +901,28 @@ estimadores = 150
 dir_SantoTome = "Raster/SantoTome_final"
 datos_SantoTome, datos_SantoTome_dibujado, datos_sin_tocar_SantoTome, x_SantoTome, y_SantoTome = cargar_datos_SantoTome(dir_SantoTome)
 datos_SantoTome = tratamiento_datos_SantoTome(datos_SantoTome)
+datos_sin_tocar_SantoTome = tratamiento_datos_sin_tocar_SantoTome(datos_sin_tocar_SantoTome)
 
 
 # Cargamos los datos y tratamiento de -- BERRUECO -- 
 dir_Berrueco = "Raster/Berrueco_final"
 datos_Berrueco, datos_Berrueco_dibujado, datos_sin_tocar_Berrueco, x_Berrueco, y_Berrueco = cargar_datos_Berrueco(dir_Berrueco)
 datos_Berrueco = tratamiento_datos_Berrueco(datos_Berrueco)
+datos_sin_tocar_Berrueco = tratamiento_datos_sin_tocar_Berrueco(datos_sin_tocar_Berrueco)
 
 
 # Cargamos los datos y tratamiento de -- LUPION --
 dir_Lupion = "Raster/Lupion_final"
 datos_Lupion, datos_Lupion_dibujado, datos_sin_tocar_Lupion, x_Lupion, y_Lupion = cargar_datos_Lupion(dir_Lupion)
 datos_Lupion = tratamiento_datos_Lupion(datos_Lupion)
+datos_sin_tocar_Lupion = tratamiento_datos_sin_tocar_Lupion(datos_sin_tocar_Lupion)
 
 
 # Cargamos los datos y tratamiento de -- RENTILLAS --
 dir_Rentillas = "Raster/Rentillas_final"
 datos_Rentillas, datos_Rentillas_dibujado, datos_sin_tocar_Rentillas, x_Rentillas, y_Rentillas = cargar_datos_Rentillas(dir_Rentillas)
 datos_Rentillas = tratamiento_datos_Rentillas(datos_Rentillas)
+datos_sin_tocar_Rentillas = tratamiento_datos_sin_tocar_Rentillas(datos_sin_tocar_Rentillas)
 
 
 # Union de datos
@@ -675,7 +938,6 @@ del datos_Lupion
 
 # Eliminacion de variables
 datos = eliminacion_variables(datos)
-datos_sin_tocar_Rentillas = categorizacion_sin_tocar(datos_sin_tocar_Rentillas, "Rentillas")
 datos_sin_tocar_Rentillas = eliminacion_variables(datos_sin_tocar_Rentillas)
 
 
