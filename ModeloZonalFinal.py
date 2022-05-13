@@ -294,10 +294,6 @@ def tratamiento_datos_Berrueco(datos):
 
 def tratamiento_datos_sin_tocar_Berrueco(datos):
     print("\n-- Tratamiento datos sin tocar Berrueco --")
-
-    datos = datos[datos['Arcillas'] >= 0]
-    datos = datos[datos['Carbono_Organico'] >= 0]
-    datos = datos[datos['Orientaciones'] >= 0]
     
     # Estos cambios dan igual, se eliminan en el mapa es por que sean string
     datos.loc[datos.Arcillas < 0, "Geologia"] = "Codigo_9002"
@@ -410,7 +406,6 @@ def cargar_datos_Lupion(path):
     
     return datos, datos_para_dibujado, datos_sin_tocar, x, y
     
-
 def tratamiento_datos_Lupion(datos):
     print("\n-- Tratamiento datos Lupion --\n")
     print("Número de datos antes del tratamiento ", datos.size)
@@ -475,17 +470,6 @@ def tratamiento_datos_Lupion(datos):
 
 def tratamiento_datos_sin_tocar_Lupion(datos):
     print("\n-- Tratamiento datos sin tocar Lupion --")
-
-    datos = datos[datos['Lupi_11_9999'] != -9999]
-    datos = datos[datos['Altitud'] >= 0]
-    datos = datos[datos['Arcillas'] >= 0]
-    datos = datos[datos['Carbonatos'] >= 0]
-    datos = datos[datos['Carbono_Organico'] >= 0]
-    datos = datos[datos['Carcavas'] != 255]
-    datos = datos[datos['Curvatura_Perfil'] != -3.4028230607370965e+38]
-    datos = datos[datos['Distancia_Carreteras'] >= 0]
-    datos = datos[datos['Orientaciones'] >= 0]
-    datos = datos[datos['Overland_Flow_Distance'] != -99999.0]
     
     # Estos cambios dan igual, se eliminan en el mapa es por que sean string
     datos.loc[datos.Lupi_11_9999 == -9999, "Geologia"] = "Codigo_9002"
@@ -872,7 +856,19 @@ def dibujo_mapa(zona, prediccion_prob, datos_para_dibujado, x, y):
         
     if(zona == "Rentillas"):
         for i in datos_para_dibujado.index:
-            if datos_para_dibujado["Carcavas"][i] == -9999 or datos_para_dibujado["Altitud"][i] < 0 or datos_para_dibujado["Distancia_Carreteras"][i] < 0 or datos_para_dibujado["Carbono_Organico"][i] < 0 or datos_para_dibujado["Orientaciones"][i] < 0 :                
+            if datos_para_dibujado["Carcavas"][i] == -9999 or datos_para_dibujado["Altitud"][i] < 0 or datos_para_dibujado["Distancia_Carreteras"][i] < 0 or datos_para_dibujado["Carbono_Organico"][i] < 0 or datos_para_dibujado["Orientaciones"][i] < 0 or datos_para_dibujado["Carbonatos"][i] < 0 or datos_para_dibujado["Arcillas"][i] < 0:                
+                array_color[i] = 0
+    if(zona == "Lupion"):
+        for i in datos_para_dibujado.index:
+            if datos_para_dibujado["Carcavas"][i] == -255 or datos_para_dibujado["Altitud"][i] < 0 or datos_para_dibujado["Distancia_Carreteras"][i] < 0 or datos_para_dibujado["Carbono_Organico"][i] < 0 or datos_para_dibujado["Curvatura_Perfil"][i] == -3.4028230607370965e+38 or datos_para_dibujado["Distancia_Carreteras"][i] < 0 or datos_para_dibujado["Orientaciones"][i] < 0 or datos_para_dibujado["Overland_Flow_Distance"][i] < -99999.0 or datos_para_dibujado["Carbonatos"][i] < 0 or datos_para_dibujado["Arcillas"][i] < 0:                
+                array_color[i] = 0
+    if(zona == "Berrueco"):
+        for i in datos_para_dibujado.index:
+            if datos_para_dibujado["Carbono_Organico"][i] < 0 or datos_para_dibujado["Orientaciones"][i] < 0 or datos_para_dibujado["Arcillas"][i] < 0:                
+                array_color[i] = 0
+    if(zona == "SantoTome"):
+        for i in datos_para_dibujado.index:
+            if datos_para_dibujado["Carcavas"][i] == -128 or datos_para_dibujado["Distancia_Carreteras"][i] < 0 or datos_para_dibujado["Orientaciones"][i] < 0 or datos_para_dibujado["Arcillas"][i] < 0 or datos_para_dibujado["Geologia"][i] < 0:                
                 array_color[i] = 0
                 
     # Comiendo de dibujo
@@ -886,10 +882,10 @@ def dibujo_mapa(zona, prediccion_prob, datos_para_dibujado, x, y):
 
 def dibujar_mapa_2(prediccion, x, y):
 
-    cmap = mpl.colors.ListedColormap(['green','limegreen','yellow','orange','darkgoldenrod','red','black'])
+    cmap = mpl.colors.ListedColormap(['green','limegreen','yellow','orange','darkgoldenrod','red'])
     bins = [0.0, 0.05, 0.2, 0.4, 0.7, 0.8, 1.0]
 
-    norm = mpl.colors.BoundaryNorm(boundaries=bins, ncolors=len(cmap.colors)-1 )
+    norm = mpl.colors.BoundaryNorm(boundaries=bins, ncolors=len(cmap.colors) )
 
     SalidaDibujo = np.reshape(prediccion, (y,x))
     
@@ -906,7 +902,7 @@ def dibujarCustomBar():
     fig, ax = plt.subplots(figsize=(6, 1))
     fig.subplots_adjust(bottom=0.5)
 
-    cmap = mpl.colors.ListedColormap(['green','limegreen','yellow','orange','darkgoldenrod','red','black'])
+    cmap = mpl.colors.ListedColormap(['green','limegreen','yellow','orange','darkgoldenrod','red'])
     cmap.set_over('0.25')
     cmap.set_under('0.75')
 
@@ -959,20 +955,30 @@ datos_sin_tocar_Rentillas = tratamiento_datos_sin_tocar_Rentillas(datos_sin_toca
 
 
 # Union de datos
-datos = union_datos(datos_SantoTome, datos_Berrueco, datos_Lupion)
+datos = union_datos(datos_Berrueco, datos_Rentillas, datos_Lupion)
 
 
-# Liberacion de memoria (Menos del que se quiere predecir)
+# Liberacion de memoria
 del datos_SantoTome
 del datos_Berrueco
 del datos_Lupion
-#del datos_Rentillas
+del datos_Rentillas
 
 
 # Eliminacion de variables
 datos = eliminacion_variables(datos)
-datos_sin_tocar_Rentillas = eliminacion_variables(datos_sin_tocar_Rentillas)
-datos_Rentillas_dibujado = eliminacion_variables(datos_Rentillas_dibujado)
+
+# Rentillas
+#datos_sin_tocar_Rentillas = eliminacion_variables(datos_sin_tocar_Rentillas)
+
+# Lupion
+#datos_sin_tocar_Lupion = eliminacion_variables(datos_sin_tocar_Lupion)
+
+# Berrueco
+#datos_sin_tocar_Berrueco = eliminacion_variables(datos_sin_tocar_Berrueco)
+
+# Santo Tome
+datos_sin_tocar_SantoTome = eliminacion_variables(datos_sin_tocar_SantoTome)
 
 
 # Separacion de datos en X e Y
@@ -994,15 +1000,15 @@ modelo.fit(X, Y)
 
 # Prediccion
 print("\n-- Realizando predicción --")
-prediccion_prob = modelo.predict_proba(datos_sin_tocar_Rentillas)
+prediccion_prob = modelo.predict_proba(datos_sin_tocar_SantoTome)
 
 
 # Mapa de susceptibilidad
-array_color = dibujo_mapa("Rentillas", prediccion_prob, datos_Rentillas_dibujado, x_Rentillas, y_Rentillas)
+array_color = dibujo_mapa("SantoTome", prediccion_prob, datos_SantoTome_dibujado, x_SantoTome, y_SantoTome)
 
 
 # Mapa de susceptibilidad 2
-dibujar_mapa_2(array_color, x_Rentillas-1, y_Rentillas-1)
+dibujar_mapa_2(array_color, x_SantoTome-1, y_SantoTome-1)
 
 
 # Custom bar
