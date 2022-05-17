@@ -13,6 +13,7 @@ from osgeo import gdal
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
+import math
 
 import xgboost as xgb
 from xgboost import plot_importance
@@ -21,7 +22,9 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
 from statsmodels.stats.outliers_influence import variance_inflation_factor
 from sklearn.metrics import classification_report, confusion_matrix
-
+from sklearn.metrics import mean_squared_error as MSE
+from sklearn.metrics import roc_auc_score
+import pickle
 
 
 # -- FUNCIONES - #
@@ -463,13 +466,13 @@ def tratamiento_datos_Rentillas(datos):
     return datos
 
 def union_datos(datos_SantoTome, datos_Berrueco, datos_Lupion, datos_Rentillas):
-    print("\n-- Uniendo datos --\n")
+    print("\n-- Uniendo datos --")
     frames = [datos_SantoTome, datos_Berrueco, datos_Lupion, datos_Rentillas]
     datos = pd.concat(frames, ignore_index=True)
     return datos
 
 def matriz_correlacion(datos):
-    print("-- Matriz de confusion --\n")
+    print("-- Matriz de confusion --")
     corr_datos = datos.corr(method='pearson')
     plt.figure(figsize=(18, 16))
     sns.heatmap(corr_datos, annot=True)
@@ -477,7 +480,7 @@ def matriz_correlacion(datos):
 
 def vif(datos):
 
-    print("-- Realizando VIF --\n")
+    print("\n-- Realizando VIF --\n")
     
     """
     # Mapeamos
@@ -550,6 +553,39 @@ def validaciones_modelo(modelo, x_pred, y_P):
 
     return k, tp
 
+def eliminacion_variables(datos):
+    
+    del datos['Unidades_Edaficas']
+    del datos['Stream_Power_Index']
+    del datos['Limos']
+    del datos['Arcillas']
+    del datos['Arenas']
+    del datos['Carbono_Organico']
+    del datos['Carbonatos']
+    
+    return datos
+
+def rmse_auc(modelo, test_x, test_y):
+    pred = modelo.predict(test_x)
+    rmse = np.sqrt(MSE(test_y, pred))
+    
+    y_pred = modelo.predict_proba(test_x)[:,1]
+    roc = roc_auc_score(test_y,y_pred)
+    
+    return rmse, roc
+    
+
+# -- PARAMETROS -- #
+
+"""
+- Modelo 1: Learning rate: 0.10, Profundidad 6 y número de estimadores 150
+- Modelo 2: Learning rate: 0.35, Profundidad 10 y número de estimadores 300
+"""
+
+eta = 0.35
+profundidad = 10
+estimadores = 300
+
 # -- MAIN -- #
 
 # Cargamos los datos y tratamiento de -- SANTO TOME --
@@ -587,8 +623,12 @@ del datos_Lupion
 del datos_Rentillas
 
 
+# Eliminacion de variables
+datos = eliminacion_variables(datos)
+
+
 # Matriz de correlacion de datos
-matriz_correlacion(datos)
+# matriz_correlacion(datos)
 
 
 # Correlacion a través de VIF
@@ -600,28 +640,33 @@ Y = datos.Carcavas
 datos = datos.drop(['Carcavas'], axis=1)
 X = datos
 # Dividimos el dataset
-X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size = 0.3, random_state = 0)
-# Valor de desequilibrio
-valos_desequilibrio = Y.value_counts()[0]/Y.value_counts()[1]
+X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size = 0.3, random_state = 2)
+valos_desequilibrio = math.sqrt(Y.value_counts()[0]/Y.value_counts()[1])
+
+
+# Cargar modelos
+# modelo = pickle.load(open("NOMBRE", "rb"))
 
 
 # Realizacion de modelo
 print("\n-- Creando modelo --")
-modelo = modelo_XGBoost(0.1, 4, 100, valos_desequilibrio)
+modelo = modelo_XGBoost(eta, profundidad, estimadores, valos_desequilibrio)
 print("\n-- Entrenando modelo --")
 modelo.fit(X_train, Y_train)
 
 
+# Guardamos modelo
+pickle.dump(modelo, open("Modelos/modelo_general_1", "wb"))
+
+
 # Feature important
-importancia_variables(modelo)
+# importancia_variables(modelo)
 
 
 # Validacion
 print("\n-- Validacion... --\n")
 k, tp = validaciones_modelo(modelo, X_test, Y_test)
 print("Kappa: ", k)
-
-
-
-
+rmse_valor, roc = rmse_auc(modelo, X_test, Y_test)
+print("RMSE: ", rmse_valor, "ROC ", roc)
 

@@ -838,6 +838,7 @@ def eliminacion_variables(datos):
     del datos['Arcillas']
     del datos['Arenas']
     del datos['Carbonatos']
+    del datos['Carbono_Organico']
     
     return datos
 
