@@ -25,6 +25,8 @@ from sklearn.metrics import classification_report, confusion_matrix
 from sklearn.metrics import mean_squared_error as MSE
 from sklearn.metrics import roc_auc_score
 import pickle
+from sklearn.model_selection import StratifiedKFold
+from sklearn.model_selection import cross_val_score
 
 
 # -- FUNCIONES - #
@@ -556,11 +558,9 @@ def validaciones_modelo(modelo, x_pred, y_P):
 def eliminacion_variables(datos):
     
     del datos['Unidades_Edaficas']
-    del datos['Stream_Power_Index']
     del datos['Limos']
     del datos['Arcillas']
     del datos['Arenas']
-    del datos['Carbono_Organico']
     del datos['Carbonatos']
     
     return datos
@@ -573,18 +573,30 @@ def rmse_auc(modelo, test_x, test_y):
     roc = roc_auc_score(test_y,y_pred)
     
     return rmse, roc
+
+def validacion_cruzada(x, y, modelo):
+    print("-- Validacion cruzada --\n")
+    kfold = StratifiedKFold(n_splits=10)
     
+    scoring = {'mse': 'mean_squared_error',
+               'precision_desbalanceada': 'balanced_accuracy',
+               'roc_auc': 'roc_auc',
+               'f1': 'f1'}
+    
+    resultados = cross_val_score(modelo, x, y, cv=kfold, scoring=scoring, return_train_score=True)
+    
+    return resultados
+
 
 # -- PARAMETROS -- #
-
 """
 - Modelo 1: Learning rate: 0.10, Profundidad 6 y número de estimadores 150
-- Modelo 2: Learning rate: 0.35, Profundidad 10 y número de estimadores 300
+- Modelo 2: Learning rate: 0.25, Profundidad 10 y número de estimadores 250
 """
 
-eta = 0.35
-profundidad = 10
-estimadores = 300
+eta = 0.1
+profundidad = 6
+estimadores = 150
 
 # -- MAIN -- #
 
@@ -651,12 +663,21 @@ valos_desequilibrio = math.sqrt(Y.value_counts()[0]/Y.value_counts()[1])
 # Realizacion de modelo
 print("\n-- Creando modelo --")
 modelo = modelo_XGBoost(eta, profundidad, estimadores, valos_desequilibrio)
+
+
+# Validacion cruzada
+resultados = validacion_cruzada(X, Y, modelo)
+print(resultados.keys())
+
+
+"""
+# Entrenamiento del modelo
 print("\n-- Entrenando modelo --")
 modelo.fit(X_train, Y_train)
 
 
 # Guardamos modelo
-pickle.dump(modelo, open("Modelos/modelo_general_1", "wb"))
+# pickle.dump(modelo, open("Modelos/modelo_general_2_variables", "wb"))
 
 
 # Feature important
@@ -669,4 +690,5 @@ k, tp = validaciones_modelo(modelo, X_test, Y_test)
 print("Kappa: ", k)
 rmse_valor, roc = rmse_auc(modelo, X_test, Y_test)
 print("RMSE: ", rmse_valor, "ROC ", roc)
+"""
 
