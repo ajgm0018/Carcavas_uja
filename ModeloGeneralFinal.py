@@ -27,6 +27,7 @@ from sklearn.metrics import roc_auc_score
 import pickle
 from sklearn.model_selection import StratifiedKFold
 from sklearn.model_selection import cross_val_score
+from sklearn.model_selection import cross_validate
 
 
 # -- FUNCIONES - #
@@ -575,15 +576,16 @@ def rmse_auc(modelo, test_x, test_y):
     return rmse, roc
 
 def validacion_cruzada(x, y, modelo):
-    print("-- Validacion cruzada --\n")
+    print("\n-- Validacion cruzada --\n")
     kfold = StratifiedKFold(n_splits=10)
     
-    scoring = {'mse': 'mean_squared_error',
+    scoring = {'mse': 'neg_mean_squared_error',
                'precision_desbalanceada': 'balanced_accuracy',
+               'precision': 'accuracy',
                'roc_auc': 'roc_auc',
                'f1': 'f1'}
     
-    resultados = cross_val_score(modelo, x, y, cv=kfold, scoring=scoring, return_train_score=True)
+    resultados = cross_validate(modelo, x, y, cv=kfold, scoring=scoring, return_train_score=True)
     
     return resultados
 
@@ -625,18 +627,19 @@ datos_Rentillas = tratamiento_datos_Rentillas(datos_Rentillas)
 
 
 # Union de datos
-datos = union_datos(datos_SantoTome, datos_Berrueco, datos_Lupion, datos_Rentillas)
+# datos = union_datos(datos_SantoTome, datos_Berrueco, datos_Lupion, datos_Rentillas)
 
 
 # Liberacion de memoria
 del datos_SantoTome
-del datos_Berrueco
+# del datos_Berrueco
 del datos_Lupion
 del datos_Rentillas
 
 
 # Eliminacion de variables
-datos = eliminacion_variables(datos)
+# datos = eliminacion_variables(datos)
+datos = eliminacion_variables(datos_Berrueco)
 
 
 # Matriz de correlacion de datos
@@ -669,6 +672,23 @@ modelo = modelo_XGBoost(eta, profundidad, estimadores, valos_desequilibrio)
 resultados = validacion_cruzada(X, Y, modelo)
 print(resultados.keys())
 
+print("\n-- Parametros testeo --\n")
+print("Precision desbalanceada: ", resultados['test_precision_desbalanceada'].mean())
+print("Precision: ", resultados['test_precision'].mean())
+print("MSE: ", resultados['test_mse'].mean())
+mse = - resultados['test_mse'].mean()
+print("RMSE: ", math.sqrt(mse))
+print("ROC: ", resultados['test_roc_auc'].mean())
+print("F1: ", resultados['test_f1'].mean())
+
+print("\n-- Parametros entrenamiento --\n")
+print("Precision desbalanceada: ", resultados['train_precision_desbalanceada'].mean())
+print("Precision: ", resultados['train_precision'].mean())
+print("MSE: ", resultados['train_mse'].mean())
+mse = - resultados['train_mse'].mean()
+print("RMSE: ", math.sqrt(mse))
+print("ROC: ", resultados['train_roc_auc'].mean())
+print("F1: ", resultados['train_f1'].mean())
 
 """
 # Entrenamiento del modelo
@@ -677,7 +697,7 @@ modelo.fit(X_train, Y_train)
 
 
 # Guardamos modelo
-# pickle.dump(modelo, open("Modelos/modelo_general_2_variables", "wb"))
+# pickle.dump(modelo, open("Modelos/modelo_general_2_variablesxxxx", "wb"))
 
 
 # Feature important

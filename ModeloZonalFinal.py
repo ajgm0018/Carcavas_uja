@@ -23,7 +23,10 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
 from statsmodels.stats.outliers_influence import variance_inflation_factor
 from sklearn.metrics import classification_report, confusion_matrix
-
+from sklearn.metrics import accuracy_score
+from sklearn.metrics import mean_squared_error
+from sklearn.metrics import roc_auc_score
+from sklearn.metrics import f1_score
 
 
 # -- FUNCIONES - #
@@ -827,18 +830,23 @@ def validaciones_modelo(modelo, x_pred, y_P):
     y_pred = modelo.predict(x_pred)
     tp, fn, fp, tn = m_confusion(y_P, y_pred)
     k = kappa(tp, fp, fn, tn)
+    mse = mean_squared_error(y_P, y_pred)
+    
+    print("Precision: ", accuracy_score(y_P, y_pred))
+    print("MSE: ", mse)
+    print("RMSE: ", math.sqrt(mse))
+    print("ROC: ", roc_auc_score(y_P, modelo.predict_proba(x_pred)[:, 1]))
+    print("F1: ", f1_score(y_P, y_pred))
 
     return k, tp
 
 def eliminacion_variables(datos):
     
     del datos['Unidades_Edaficas']
-    del datos['Stream_Power_Index']
     del datos['Limos']
     del datos['Arcillas']
     del datos['Arenas']
     del datos['Carbonatos']
-    del datos['Carbono_Organico']
     
     return datos
 
@@ -918,7 +926,12 @@ def dibujarCustomBar():
                                     orientation='horizontal')
     fig.show()
 
+
 # -- PARAMETROS -- #
+"""
+- Modelo 1: Learning rate: 0.10, Profundidad 6 y número de estimadores 150
+- Modelo 2: Learning rate: 0.25, Profundidad 10 y número de estimadores 250
+"""
 
 eta = 0.1
 profundidad = 6
@@ -956,21 +969,21 @@ datos_sin_tocar_Rentillas = tratamiento_datos_sin_tocar_Rentillas(datos_sin_toca
 
 
 # Union de datos
-datos = union_datos(datos_Berrueco, datos_Rentillas, datos_Lupion)
+datos = union_datos(datos_Berrueco, datos_SantoTome, datos_Lupion)
 
 
 # Liberacion de memoria
-del datos_SantoTome
-del datos_Berrueco
-del datos_Lupion
-del datos_Rentillas
+#del datos_SantoTome
+#del datos_Berrueco
+#del datos_Lupion
+#del datos_Rentillas
 
 
 # Eliminacion de variables
 datos = eliminacion_variables(datos)
 
 # Rentillas
-#datos_sin_tocar_Rentillas = eliminacion_variables(datos_sin_tocar_Rentillas)
+datos_sin_tocar_Rentillas = eliminacion_variables(datos_sin_tocar_Rentillas)
 
 # Lupion
 #datos_sin_tocar_Lupion = eliminacion_variables(datos_sin_tocar_Lupion)
@@ -979,7 +992,7 @@ datos = eliminacion_variables(datos)
 #datos_sin_tocar_Berrueco = eliminacion_variables(datos_sin_tocar_Berrueco)
 
 # Santo Tome
-datos_sin_tocar_SantoTome = eliminacion_variables(datos_sin_tocar_SantoTome)
+#datos_sin_tocar_SantoTome = eliminacion_variables(datos_sin_tocar_SantoTome)
 
 
 # Separacion de datos en X e Y
@@ -999,22 +1012,38 @@ print("\n-- Entrenando modelo --")
 modelo.fit(X, Y)
 
 
-# Prediccion
-print("\n-- Realizando predicción --")
-prediccion_prob = modelo.predict_proba(datos_sin_tocar_SantoTome)
+# Prediccion probabilidades
+print("\n-- Realizando predicción probabilidad --")
+prediccion_prob = modelo.predict_proba(datos_sin_tocar_Rentillas)
+
+
+# Separacion para prediccion normal
+datos_Rentillas = eliminacion_variables(datos_Rentillas)
+Y_2 = datos_Rentillas.Carcavas
+datos_Rentillas = datos_Rentillas.drop(['Carcavas'], axis=1)
+X_2 = datos_Rentillas 
+
+
+# Validaciones normales
+print("\n-- Realizando predicción normal y validaciones --")
+validaciones_modelo(modelo, X_2, Y_2)
 
 
 # Mapa de susceptibilidad
-array_color = dibujo_mapa("SantoTome", prediccion_prob, datos_SantoTome_dibujado, x_SantoTome, y_SantoTome)
+array_color = dibujo_mapa("Rentillas", prediccion_prob, datos_Rentillas_dibujado, x_Rentillas, y_Rentillas)
 
 
 # Mapa de susceptibilidad 2
-dibujar_mapa_2(array_color, x_SantoTome-1, y_SantoTome-1)
+dibujar_mapa_2(array_color, x_Rentillas-1, y_Rentillas-1)
 
 
 # Custom bar
 dibujarCustomBar()
 
+
+# A CSV para pasar a TIF
+print("\n-- Guardando resultado --")
+np.savetxt("CSV/Rentillas_Prob.csv", prediccion_prob, delimiter=",")
 
 
 
