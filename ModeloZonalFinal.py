@@ -925,6 +925,22 @@ def dibujarCustomBar():
                                     spacing='proportional',
                                     orientation='horizontal')
     fig.show()
+    
+def preparacion_TIF(prediccion, x, y, nombre_archivo):
+    ("\n-- Realizando copia preparada para TIF --")
+    
+    salida_preparada = np.reshape(prediccion, (y,x))
+    
+    array_zero = np.zeros(salida_preparada.shape[1])
+    array_zero = array_zero + 1
+    
+    salida = np.vstack((array_zero, salida_preparada))
+    
+    array_zero_2 = np.zeros(salida.shape[0])
+    salida = np.hstack((array_zero_2.reshape(len(array_zero_2), 1), salida))
+    
+    pd.DataFrame(salida).to_csv(nombre_archivo, index = False, header = False)
+
 
 
 # -- PARAMETROS -- #
@@ -969,7 +985,7 @@ datos_sin_tocar_Rentillas = tratamiento_datos_sin_tocar_Rentillas(datos_sin_toca
 
 
 # Union de datos
-datos = union_datos(datos_Berrueco, datos_SantoTome, datos_Lupion)
+datos = union_datos(datos_SantoTome, datos_Berrueco, datos_Lupion)
 
 
 # Liberacion de memoria
@@ -986,7 +1002,7 @@ datos = eliminacion_variables(datos)
 datos_sin_tocar_Rentillas = eliminacion_variables(datos_sin_tocar_Rentillas)
 
 # Lupion
-#datos_sin_tocar_Lupion = eliminacion_variables(datos_sin_tocar_Lupion)
+#Cdatos_sin_tocar_Lupion = eliminacion_variables(datos_sin_tocar_Lupion)
 
 # Berrueco
 #datos_sin_tocar_Berrueco = eliminacion_variables(datos_sin_tocar_Berrueco)
@@ -1026,14 +1042,14 @@ X_2 = datos_Rentillas
 
 # Validaciones normales
 print("\n-- Realizando predicción normal y validaciones --")
-validaciones_modelo(modelo, X_2, Y_2)
+# validaciones_modelo(modelo, X_2, Y_2)
 
 
 # Mapa de susceptibilidad
 array_color = dibujo_mapa("Rentillas", prediccion_prob, datos_Rentillas_dibujado, x_Rentillas, y_Rentillas)
 
 
-# Mapa de susceptibilidad 2
+# Mapa de susceptibilidad
 dibujar_mapa_2(array_color, x_Rentillas-1, y_Rentillas-1)
 
 
@@ -1042,8 +1058,8 @@ dibujarCustomBar()
 
 
 # A CSV para pasar a TIF
-print("\n-- Guardando resultado --")
-np.savetxt("CSV/Rentillas_Prob.csv", prediccion_prob, delimiter=",")
+preparacion_TIF(array_color, x_Rentillas-1, y_Rentillas-1, "CSV/Rentillas_Prob.csv")
+
 
 
 

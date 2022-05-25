@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on Thu May  5 11:58:50 2022
+Created on Tue May 24 11:32:12 2022
 
 @author: Alberto Jose Gutierrez Megias
 """
@@ -14,23 +14,29 @@ import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 import math
-
-import xgboost as xgb
-from xgboost import plot_importance
-from xgboost import cv
+import matplotlib as mpl
 from sklearn.preprocessing import LabelEncoder
-from sklearn.model_selection import train_test_split
-from statsmodels.stats.outliers_influence import variance_inflation_factor
-from sklearn.metrics import classification_report, confusion_matrix
-from sklearn.metrics import mean_squared_error as MSE
-from sklearn.metrics import roc_auc_score
 import pickle
-from sklearn.model_selection import StratifiedKFold
-from sklearn.model_selection import cross_val_score
-from sklearn.model_selection import cross_validate
 
 
 # -- FUNCIONES - #
+
+def tabla_contingencia(carcavas_2009_pred, carcavas_2011_existentes):
+    
+    contador = 0
+    numero_acierto = 0
+    no_hay = 0
+    
+    for valor in carcavas_2009_pred:
+        if valor == 1:
+            if carcavas_2011_existentes.iloc[contador] == 1:
+                numero_acierto += 1
+            else:
+                no_hay += 1
+        contador += 1
+    
+    print("\nEn 2009 se predijo cárcavas de 2009:", numero_acierto, "aciertos")
+    print("\nEn 2009 se predijo cárcavas de 2011 y no había:", no_hay, "fallos")  
 
 def cargar_datos_SantoTome(path):
     print("\n-- Cargando datos Santo Tome --")
@@ -81,17 +87,15 @@ def cargar_datos_SantoTome(path):
 
         contador = contador + 1
     
-    #return datos, datos_para_dibujado, datos_sin_tocar, x, y
     return datos
 
 def tratamiento_datos_SantoTome(datos):
     print("\n-- Tratamiento datos Santo Tome --\n")
     print("Número de datos antes del tratamiento ", datos.size)
 
-    datos = datos[datos['Carcavas'] != 128]
+    datos = datos[datos['Carcavas_2009'] != 128]
     datos = datos[datos['Arcillas'] >= 0]
     datos = datos[datos['Distancia_Carreteras'] >= 0]
-    # -- MIRAR GEOLOGIA -- #
     datos = datos[datos['Geologia'] != 0]
     datos = datos[datos['Orientaciones'] >= 0]
     
@@ -120,7 +124,6 @@ def tratamiento_datos_SantoTome(datos):
     datos.loc[datos.Unidades_Edaficas == 22, "Unidades_Edaficas"] = "Codigo_22"
 
     datos = datos.round(4)
-    del datos['Carcavas_2011']
     
     # Label Encoder
     datos["Geologia"] = datos["Geologia"].astype("category")
@@ -184,8 +187,7 @@ def cargar_datos_Berrueco(path):
 
         contador = contador + 1
     
-    #return datos, datos_para_dibujado, datos_sin_tocar, x, y    
-    return datos
+    return datos 
 
 def tratamiento_datos_Berrueco(datos):
     print("\n-- Tratamiento datos Berrueco --\n")
@@ -271,7 +273,7 @@ def cargar_datos_Lupion(path):
         band = MDT.GetRasterBand(1).ReadAsArray().astype(float)
 
         # Se desechan las dos primeras filas y columnas debido a calculos de borde
-        if(n == "Carcavas" or n == "Lupi_11_9999"): 
+        if(n == "Carcavas_2009" or n == "Carcavas_2011"): 
             band = band[:, 1:x]
         elif (n == "Curvatura_Perfil" or n == "Curvatura_Plana" or n == "Distancia_Carreteras"
               or n == "Orientaciones" or n == "Pendiente" or n == "Unidades_Edaficas" or n == "Usos_Del_Suelo"):
@@ -291,19 +293,18 @@ def cargar_datos_Lupion(path):
 
         contador = contador + 1
     
-    #return datos, datos_para_dibujado, datos_sin_tocar, x, y
     return datos
-
+    
 def tratamiento_datos_Lupion(datos):
     print("\n-- Tratamiento datos Lupion --\n")
     print("Número de datos antes del tratamiento ", datos.size)
 
-    datos = datos[datos['Lupi_11_9999'] != -9999]
+    datos = datos[datos['Carcavas_2011'] != -9999]
     datos = datos[datos['Altitud'] >= 0]
     datos = datos[datos['Arcillas'] >= 0]
     datos = datos[datos['Carbonatos'] >= 0]
     datos = datos[datos['Carbono_Organico'] >= 0]
-    datos = datos[datos['Carcavas'] != 255]
+    datos = datos[datos['Carcavas_2009'] != 255]
     datos = datos[datos['Curvatura_Perfil'] != -3.4028230607370965e+38]
     datos = datos[datos['Distancia_Carreteras'] >= 0]
     datos = datos[datos['Orientaciones'] >= 0]
@@ -340,7 +341,6 @@ def tratamiento_datos_Lupion(datos):
     
     print("Número de datos despues del tratamiento ", datos.size)
     
-    del datos['Lupi_11_9999']
     datos = datos.round(4) 
     
     # Label Encoder
@@ -392,7 +392,7 @@ def cargar_datos_Rentillas(path):
         
         # Se desechan las dos primeras filas y columnas debido a calculos de borde
         if(n == "Distancia_Carreteras" or n == "Geologia" or n == "Orientaciones" or
-           n == "Pendiente" or n == "Unidades_Edaficas" or n == "Usos_Del_Suelo"): 
+           n == "Pendiente" or n == "Unidades_Edaficas" or n == "Usos_Del_Suelo" or n == "Carcavas_2011"): 
             band = band[1:y, :] 
         elif(n == "Overland_Flow_Distance"):
             band = band[:, :]
@@ -412,14 +412,13 @@ def cargar_datos_Rentillas(path):
 
         contador = contador + 1
     
-    #return datos, datos_para_dibujado, datos_sin_tocar, x, y
     return datos
-
+    
 def tratamiento_datos_Rentillas(datos):
     print("\n-- Tratamiento datos Rentillas --\n")
     print("Número de datos antes del tratamiento ", datos.size)
 
-    datos = datos[datos['Carcavas'] != -9999]
+    datos = datos[datos['Carcavas_2009'] != -9999]
     datos = datos[datos['Altitud'] >= 0 ]
     datos = datos[datos['Arcillas'] >= 0]
     datos = datos[datos['Carbonatos'] >= 0]
@@ -468,94 +467,6 @@ def tratamiento_datos_Rentillas(datos):
     
     return datos
 
-def union_datos(datos_SantoTome, datos_Berrueco, datos_Lupion, datos_Rentillas):
-    print("\n-- Uniendo datos --")
-    frames = [datos_SantoTome, datos_Berrueco, datos_Lupion, datos_Rentillas]
-    datos = pd.concat(frames, ignore_index=True)
-    return datos
-
-def matriz_correlacion(datos):
-    print("-- Matriz de confusion --")
-    corr_datos = datos.corr(method='pearson')
-    plt.figure(figsize=(18, 16))
-    sns.heatmap(corr_datos, annot=True)
-    plt.show()
-
-def vif(datos):
-
-    print("\n-- Realizando VIF --\n")
-    
-    """
-    # Mapeamos
-    datos['Geologia'] = datos['Geologia'].map({
-        'Codigo_9002':0, 'Codigo_9133':1, 'Codigo_9001':2, 'Codigo_9330':3,
-        'Codigo_9131':4, 'Codigo_9132':5, 'Codigo_9201':6, 'Codigo_9103':7,
-        'Codigo_9202':8, 'Codigo_9004':9, 'Codigo_9134':10, 'Codigo_9000':11,
-        'Codigo_9003':12, 'Codigo_8996':13, 'Codigo_9102':14})
-    
-    datos['Usos_Del_Suelo'] = datos['Usos_Del_Suelo'].map({
-        'Tierras_regadas':0, 'Olivares':1, 'Labor_secano':2, 'Cultivos_permanentes':3,
-        'Tejido_urbano':4, 'Pastizales':5, 'Mosaicos_cultivos':6, 'Cursos_agua':7,
-        'Frutales':8})
-    
-    datos['Unidades_Edaficas'] = datos['Unidades_Edaficas'].map({
-        'Codigo_22':0, 'Codigo_48':1, 'Codigo_44':2, 'Codigo_23':3,
-        'Codigo_13':4, 'Codigo_21':5, 'Codigo_11':6, 'Codigo_49':7,
-        'Codigo_2':8, 'Codigo_42':9, 'Codigo_58':10, 'Codigo_47':11,
-        'Codigo_37':12})
-    """
-    
-    # VIF dataframe
-    vif_data = pd.DataFrame()
-    vif_data["feature"] = datos.columns
-    
-    # Calculando VIF para cada feature
-    vif_data["VIF"] = [variance_inflation_factor(datos.values, i)
-                          for i in range(len(datos.columns))]
-    
-    print("\n")
-    print(vif_data)
-
-def modelo_XGBoost(learning_rate, depth, estimators, valos_desequilibrio):
-  modelo_xgb = xgb.XGBClassifier(use_label_encoder=False, 
-                                 verbosity=0, 
-                                 eta=learning_rate,
-                                 max_depth=depth, 
-                                 sampling_method='gradient_based',
-                                 scale_pos_weight=valos_desequilibrio,
-                                 n_estimators=estimators)
-  return modelo_xgb  
-
-def importancia_variables(modelo):
-    plot_importance(modelo)
-    plt.show()
-
-def m_confusion(Y_test, Y_pred):
-    cnf_matrix = confusion_matrix(Y_test, Y_pred, labels=[1,0])
-    tp, fn, fp, tn = cnf_matrix.ravel()
-    return tp, fn, fp, tn
-
-def kappa(TP, FP, FN, TN):
-    N = TP+TN+FP+FN
-
-    precision = (TP+TN)/(TP+TN+FP+FN)
-    
-    Pexp = ((TP+FN)*(TP+FP)+(FP+TN)*(FN+TN))/(N*N)
-    
-    Pobs = (TP+TN)/N
-    
-    k = (Pobs - Pexp)/(1 - Pexp)
-    
-    return k
-
-def validaciones_modelo(modelo, x_pred, y_P):
-    
-    y_pred = modelo.predict(x_pred)
-    tp, fn, fp, tn = m_confusion(y_P, y_pred)
-    k = kappa(tp, fp, fn, tn)
-
-    return k, tp
-
 def eliminacion_variables(datos):
     
     del datos['Unidades_Edaficas']
@@ -565,29 +476,6 @@ def eliminacion_variables(datos):
     del datos['Carbonatos']
     
     return datos
-
-def rmse_auc(modelo, test_x, test_y):
-    pred = modelo.predict(test_x)
-    rmse = np.sqrt(MSE(test_y, pred))
-    
-    y_pred = modelo.predict_proba(test_x)[:,1]
-    roc = roc_auc_score(test_y,y_pred)
-    
-    return rmse, roc
-
-def validacion_cruzada(x, y, modelo):
-    print("\n-- Validacion cruzada --\n")
-    kfold = StratifiedKFold(n_splits=10)
-    
-    scoring = {'mse': 'neg_mean_squared_error',
-               'precision_desbalanceada': 'balanced_accuracy',
-               'precision': 'accuracy',
-               'roc_auc': 'roc_auc',
-               'f1': 'f1'}
-    
-    resultados = cross_validate(modelo, x, y, cv=kfold, scoring=scoring, return_train_score=True)
-    
-    return resultados
 
 
 # -- PARAMETROS -- #
@@ -603,112 +491,85 @@ estimadores = 150
 # -- MAIN -- #
 
 # Cargamos los datos y tratamiento de -- SANTO TOME --
-dir_SantoTome = "Raster/SantoTome_final"
+dir_SantoTome = "Raster/SantoTome_Contingecia"
 datos_SantoTome = cargar_datos_SantoTome(dir_SantoTome)
 datos_SantoTome = tratamiento_datos_SantoTome(datos_SantoTome)
 
 
 # Cargamos los datos y tratamiento de -- BERRUECO -- 
-dir_Berrueco = "Raster/Berrueco_final"
+dir_Berrueco = "Raster/Berrueco_Contingencia"
 datos_Berrueco = cargar_datos_Berrueco(dir_Berrueco)
 datos_Berrueco = tratamiento_datos_Berrueco(datos_Berrueco)
 
 
 # Cargamos los datos y tratamiento de -- LUPION --
-dir_Lupion = "Raster/Lupion_final"
+dir_Lupion = "Raster/Lupion_Contingencia"
 datos_Lupion = cargar_datos_Lupion(dir_Lupion)
 datos_Lupion = tratamiento_datos_Lupion(datos_Lupion)
 
 
 # Cargamos los datos y tratamiento de -- RENTILLAS --
-dir_Rentillas = "Raster/Rentillas_final"
+dir_Rentillas = "Raster/Rentillas_Contingencia"
 datos_Rentillas = cargar_datos_Rentillas(dir_Rentillas)
 datos_Rentillas = tratamiento_datos_Rentillas(datos_Rentillas)
 
 
-# Union de datos
-datos = union_datos(datos_SantoTome, datos_Berrueco, datos_Lupion, datos_Rentillas)
+# Separamos las carcavas de 2011 de todas las zonas
+datos_SantoTome = eliminacion_variables(datos_SantoTome)
+Carcavas_2011_SantoTome = datos_SantoTome.Carcavas_2011
+datos_SantoTome = datos_SantoTome.drop(['Carcavas_2011'], axis=1)
+datos_SantoTome = datos_SantoTome.drop(['Carcavas_2009'], axis=1)
+
+datos_Berrueco = eliminacion_variables(datos_Berrueco)
+Carcavas_2011_Berrueco = datos_Berrueco.Carcavas_2011
+datos_Berrueco = datos_Berrueco.drop(['Carcavas_2011'], axis=1)
+datos_Berrueco = datos_Berrueco.drop(['Carcavas_2009'], axis=1)
+
+datos_Lupion = eliminacion_variables(datos_Lupion)
+Carcavas_2011_Lupion = datos_Lupion.Carcavas_2011
+datos_Lupion = datos_Lupion.drop(['Carcavas_2011'], axis=1)
+datos_Lupion = datos_Lupion.drop(['Carcavas_2009'], axis=1)
 
 
-# Liberacion de memoria
-del datos_SantoTome
-del datos_Berrueco
-del datos_Lupion
-del datos_Rentillas
+datos_Rentillas = eliminacion_variables(datos_Rentillas)
+Carcavas_2011_Rentillas = datos_Rentillas.Carcavas_2011
+datos_Rentillas = datos_Rentillas.drop(['Carcavas_2011'], axis=1)
+datos_Rentillas = datos_Rentillas.drop(['Carcavas_2009'], axis=1)
 
 
-# Eliminacion de variables
-datos = eliminacion_variables(datos)
+# Carcagamos el modelo
+modelo = pickle.load(open("Modelos/modelo_general_1_variables", "rb"))
 
 
-
-# Matriz de correlacion de datos
-# matriz_correlacion(datos)
-
-
-# Correlacion a través de VIF
-# vif(datos)
-
-
-# Separacion de datos en X e Y
-Y = datos.Carcavas
-datos = datos.drop(['Carcavas'], axis=1)
-X = datos
-# Dividimos el dataset
-X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size = 0.3, random_state = 2)
-valos_desequilibrio = math.sqrt(Y.value_counts()[0]/Y.value_counts()[1])
+# Prediccion
+print("\n-- Predicciones --")
+prediccion_SantoTome = modelo.predict(datos_SantoTome)
+prediccion_Berrueco = modelo.predict(datos_Berrueco)
+prediccion_Rentillas = modelo.predict(datos_Rentillas)
+prediccion_Lupion = modelo.predict(datos_Lupion)
 
 
-# Cargar modelos
-# modelo = pickle.load(open("Modelos/modelo_general_1_variables", "rb"))
-
-
-# Realizacion de modelo
-print("\n-- Creando modelo --")
-modelo = modelo_XGBoost(eta, profundidad, estimadores, valos_desequilibrio)
-
-
-# Validacion cruzada
-resultados = validacion_cruzada(X, Y, modelo)
-print(resultados.keys())
-
-print("\n-- Parametros testeo --\n")
-print("Precision desbalanceada: ", resultados['test_precision_desbalanceada'].mean())
-print("Precision: ", resultados['test_precision'].mean())
-print("MSE: ", resultados['test_mse'].mean())
-mse = - resultados['test_mse'].mean()
-print("RMSE: ", math.sqrt(mse))
-print("ROC: ", resultados['test_roc_auc'].mean())
-print("F1: ", resultados['test_f1'].mean())
-
-print("\n-- Parametros entrenamiento --\n")
-print("Precision desbalanceada: ", resultados['train_precision_desbalanceada'].mean())
-print("Precision: ", resultados['train_precision'].mean())
-print("MSE: ", resultados['train_mse'].mean())
-mse = - resultados['train_mse'].mean()
-print("RMSE: ", math.sqrt(mse))
-print("ROC: ", resultados['train_roc_auc'].mean())
-print("F1: ", resultados['train_f1'].mean())
-
+# Tabla
 """
-# Entrenamiento del modelo
-print("\n-- Entrenando modelo --")
-modelo.fit(X_train, Y_train)
-
-
-# Guardamos modelo
-# pickle.dump(modelo, open("Modelos/modelo_general_2_variablesxxxx", "wb"))
-
-
-# Feature important
-# importancia_variables(modelo)
-
-
-# Validacion
-print("\n-- Validacion... --\n")
-k, tp = validaciones_modelo(modelo, X_test, Y_test)
-print("Kappa: ", k)
-rmse_valor, roc = rmse_auc(modelo, X_test, Y_test)
-print("RMSE: ", rmse_valor, "ROC ", roc)
+print("\n-- Realizando tabla de Santo Tomé --")
+tabla_contingencia(prediccion_SantoTome, Carcavas_2011_SantoTome)
+print("\n-- Realizando tabla de Berrueco --")
+tabla_contingencia(prediccion_Berrueco, Carcavas_2011_Berrueco)
+print("\n-- Realizando tabla de Rentillas --")
+tabla_contingencia(prediccion_Rentillas, Carcavas_2011_Rentillas)
+print("\n-- Realizando tabla de Lupion --")
+tabla_contingencia(prediccion_Lupion, Carcavas_2011_Lupion)
 """
+
+
+
+
+
+
+
+
+
+
+
+
 
