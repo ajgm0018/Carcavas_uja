@@ -7,6 +7,10 @@ Created on Thu May  5 11:58:50 2022
 
 # -- LIBRERIAS Y OPCIONES -- #
 
+"""
+Librerías utilizadas
+"""
+
 import os
 import pandas as pd
 from osgeo import gdal
@@ -27,10 +31,20 @@ from sklearn.metrics import accuracy_score
 from sklearn.metrics import mean_squared_error
 from sklearn.metrics import roc_auc_score
 from sklearn.metrics import f1_score
+import pickle
 
 
 # -- FUNCIONES - #
+"""
+-- Inicio de las funciones de carga y tratamiento de datos --
+"""
 
+"""
+Carga de datos
+
+@param: path -> directorio donde se encuentran los datos a cargar de la zona a la que se refiere la función
+@return: datos
+"""
 def cargar_datos_SantoTome(path):
     print("\n-- Cargando datos Santo Tome --")
     dir = path
@@ -82,6 +96,12 @@ def cargar_datos_SantoTome(path):
     
     return datos, datos_para_dibujado, datos_sin_tocar, x, y
 
+"""
+Tratamiemto de los datos
+
+@param: datos -> datos a tratar, en este caso deben de ser de Santo Tomé
+@return: datos
+"""
 def tratamiento_datos_SantoTome(datos):
     print("\n-- Tratamiento datos Santo Tome --\n")
     print("Número de datos antes del tratamiento ", datos.size)
@@ -132,6 +152,16 @@ def tratamiento_datos_SantoTome(datos):
 
     return datos
 
+
+"""
+Este tratamiento de datos no elimina los datos basura, les de unos valores aleatorios.
+Estos valores basura se convertirán en 0. Pero es necesario que no sean eliminados porque
+son utilizados para diferentes funciones donde necesitan las mismas dimensiones, como por ejemplo,
+dibujar un mapa de susceptibilidad
+
+@param: datos -> datos a tratar, en este caso deben de ser de Santo Tomé
+@return: datos
+"""
 def tratamiento_datos_sin_tocar_SantoTome(datos):
     print("\n-- Tratamiento datos sin tocar Santo Tome --")
 
@@ -745,54 +775,33 @@ def tratamiento_datos_sin_tocar_Rentillas(datos):
     
     return datos
 
+"""
+-- Fin de las funciones de carga y tratamiento de datos --
+"""
+
+"""
+Union de los datos de zonas diferentes en un mismo Dataframe
+
+@param: datos_X -> datos de las zonas tratadas
+@return: datos
+"""
 def union_datos(datos_1, datos_2, datos_3):
     print("\n-- Uniendo datos --")
     frames = [datos_1, datos_2, datos_3]
     datos = pd.concat(frames, ignore_index=True)
     return datos
 
-def matriz_correlacion(datos):
-    print("-- Matriz de confusion --")
-    corr_datos = datos.corr(method='pearson')
-    plt.figure(figsize=(18, 16))
-    sns.heatmap(corr_datos, annot=True)
-    plt.show()
+"""
+Definición del modelo XGBoost que se utilizará
 
-def vif(datos):
+@param: learning rate -> ratio de aprendizaje
+@param: depth -> profundidad de arbol
+@param: estimators -> estimadores
+@param: valor_desequilibrio -> valor para modelos desbalanceados
+@return: modelo
 
-    print("-- Realizando VIF --\n")
-    
-    """
-    # Mapeamos
-    datos['Geologia'] = datos['Geologia'].map({
-        'Codigo_9002':0, 'Codigo_9133':1, 'Codigo_9001':2, 'Codigo_9330':3,
-        'Codigo_9131':4, 'Codigo_9132':5, 'Codigo_9201':6, 'Codigo_9103':7,
-        'Codigo_9202':8, 'Codigo_9004':9, 'Codigo_9134':10, 'Codigo_9000':11,
-        'Codigo_9003':12, 'Codigo_8996':13, 'Codigo_9102':14})
-    
-    datos['Usos_Del_Suelo'] = datos['Usos_Del_Suelo'].map({
-        'Tierras_regadas':0, 'Olivares':1, 'Labor_secano':2, 'Cultivos_permanentes':3,
-        'Tejido_urbano':4, 'Pastizales':5, 'Mosaicos_cultivos':6, 'Cursos_agua':7,
-        'Frutales':8})
-    
-    datos['Unidades_Edaficas'] = datos['Unidades_Edaficas'].map({
-        'Codigo_22':0, 'Codigo_48':1, 'Codigo_44':2, 'Codigo_23':3,
-        'Codigo_13':4, 'Codigo_21':5, 'Codigo_11':6, 'Codigo_49':7,
-        'Codigo_2':8, 'Codigo_42':9, 'Codigo_58':10, 'Codigo_47':11,
-        'Codigo_37':12})
-    """
-    
-    # VIF dataframe
-    vif_data = pd.DataFrame()
-    vif_data["feature"] = datos.columns
-    
-    # Calculando VIF para cada feature
-    vif_data["VIF"] = [variance_inflation_factor(datos.values, i)
-                          for i in range(len(datos.columns))]
-    
-    print("\n")
-    print(vif_data)
-
+Fuente: https://xgboost.readthedocs.io/en/stable/parameter.html
+"""
 def modelo_XGBoost(learning_rate, depth, estimators, valos_desequilibrio):
   modelo_xgb = xgb.XGBClassifier(use_label_encoder=False, 
                                  verbosity=0, 
@@ -803,15 +812,28 @@ def modelo_XGBoost(learning_rate, depth, estimators, valos_desequilibrio):
                                  n_estimators=estimators)
   return modelo_xgb  
 
-def importancia_variables(modelo):
-    plot_importance(modelo)
-    plt.show()
+"""
+Obtención de True Positive, False Negative, False Positive y True Negative de una matriz
+de confusión
 
+@param: Y_test -> variable dependiente de testeo
+@param: Y_pred -> variable dependiente predicha
+@return: True Positive, False Negative, False Positive y True Negative
+"""
 def m_confusion(Y_test, Y_pred):
     cnf_matrix = confusion_matrix(Y_test, Y_pred, labels=[1,0])
     tp, fn, fp, tn = cnf_matrix.ravel()
     return tp, fn, fp, tn
 
+"""
+Obtención del coeficiente Kappa
+
+@param: TP -> True Positive
+@param: FP -> False Positive
+@param: FN -> False Negative
+@param: TN -> True Negative
+@return: Kappa
+"""
 def kappa(TP, FP, FN, TN):
     N = TP+TN+FP+FN
 
@@ -825,6 +847,15 @@ def kappa(TP, FP, FN, TN):
     
     return k
 
+"""
+Devuelve el valor Kappa y el valor de aciertos positivos
+Ademas muestra la Precisión, MSE, RMSE, ROC y F1 del modelo despues de predecir
+
+@param: modelo -> modelo creado sin entrenar
+@param: x_pred -> valores a predecir
+@param: y_P    -> variable dependiente de los valores a predecir
+@return: Kappa, True Positive
+"""
 def validaciones_modelo(modelo, x_pred, y_P):
     
     y_pred = modelo.predict(x_pred)
@@ -840,6 +871,13 @@ def validaciones_modelo(modelo, x_pred, y_P):
 
     return k, tp
 
+"""
+Elimina de los datos las variables seleccionadas en la función 
+(realizar manualmente en la funcion)
+
+@param: datos -> datos con las variables a eliminar
+@return: datos
+"""
 def eliminacion_variables(datos):
     
     del datos['Unidades_Edaficas']
@@ -850,6 +888,22 @@ def eliminacion_variables(datos):
     
     return datos
 
+"""
+Realizar mapa de susceptibilidad continuo a través de los valores de probabilidad de cada pixel de que
+en ese mismo pixel haya o no una cárcava
+
+Dependiendo de la zona, a cada uno de los valores basura que no fueron borrados para transformarlos en 0
+ocurre en esta función indicado en un comentario. Esto se hace para realizar un mapa con una dimensión
+determinada
+
+@param: zona -> Lugar geográfico a dibujar mapa (Opciones: Rentillas, Lupion, Berrueco, SantoTome)
+@param: prediccion_prob -> Probabilidades de la predicción ya realizada
+@param: datos_para_dibujado -> datos utilizados para dibujar
+@param: x -> Dimension X del mapa
+@param: y -> Dimension Y del mapa
+@return: Array con las probabilidades de los mapas
+    
+"""
 def dibujo_mapa(zona, prediccion_prob, datos_para_dibujado, x, y):
     
     print("\n-- Realizando mapa de susceptiblidad --")
@@ -858,11 +912,10 @@ def dibujo_mapa(zona, prediccion_prob, datos_para_dibujado, x, y):
     total = (prediccion_prob.size / 2)
     array_color = [0] * int(total)
     
-    # array color: 1977628
-    
     for i in range(int(total)):
         array_color[i] = prediccion_prob[i][1]
-        
+      
+    # Aqui se realiza la transformación a ceros
     if(zona == "Rentillas"):
         for i in datos_para_dibujado.index:
             if datos_para_dibujado["Carcavas"][i] == -9999 or datos_para_dibujado["Altitud"][i] < 0 or datos_para_dibujado["Distancia_Carreteras"][i] < 0 or datos_para_dibujado["Carbono_Organico"][i] < 0 or datos_para_dibujado["Orientaciones"][i] < 0 or datos_para_dibujado["Carbonatos"][i] < 0 or datos_para_dibujado["Arcillas"][i] < 0:                
@@ -889,9 +942,19 @@ def dibujo_mapa(zona, prediccion_prob, datos_para_dibujado, x, y):
     
     return array_color
 
+"""
+Realizar mapa de susceptibilidad discreto
+
+@param: prediccion -> Prediccion en probabilidad
+@param: x -> Dimension X del mapa
+@param: y -> Dimension Y del mapa
+@return: Salida del dibujo (mapa de susceptibilidad)
+"""
 def dibujar_mapa_2(prediccion, x, y):
 
+    # Rango de colores
     cmap = mpl.colors.ListedColormap(['green','limegreen','yellow','orange','darkgoldenrod','red'])
+    # Rango numérico de probabilidades por color
     bins = [0.0, 0.05, 0.2, 0.4, 0.7, 0.8, 1.0]
 
     norm = mpl.colors.BoundaryNorm(boundaries=bins, ncolors=len(cmap.colors) )
@@ -907,6 +970,9 @@ def dibujar_mapa_2(prediccion, x, y):
     fig.show()
     return SalidaDibujo
 
+"""
+Realiza un dibujo de la barra discreta
+"""
 def dibujarCustomBar():
     fig, ax = plt.subplots(figsize=(6, 1))
     fig.subplots_adjust(bottom=0.5)
@@ -925,7 +991,10 @@ def dibujarCustomBar():
                                     spacing='proportional',
                                     orientation='horizontal')
     fig.show()
-    
+ 
+"""
+Proceso de creación de CSV para transformarlo a TIF en otro programa en R
+"""
 def preparacion_TIF(prediccion, x, y, nombre_archivo):
     ("\n-- Realizando copia preparada para TIF --")
     
@@ -945,6 +1014,9 @@ def preparacion_TIF(prediccion, x, y, nombre_archivo):
 
 # -- PARAMETROS -- #
 """
+Parametros utilizados para los diferentes modelos a crear, desde aquí se pueden
+cambiar las variables que utiliza
+
 - Modelo 1: Learning rate: 0.10, Profundidad 6 y número de estimadores 150
 - Modelo 2: Learning rate: 0.25, Profundidad 10 y número de estimadores 250
 """
@@ -955,6 +1027,14 @@ estimadores = 150
 
 # -- MAIN -- #
 
+"""
+--- IMPORTANTE ---
+
+El programa no sigue una secuencialidad. Algunas partes vendrán detalladas para ser opcionalmente
+comentadas, oprimidas o utilizadas
+
+--- IMPORTANTE ---
+"""
 
 # Cargamos los datos y tratamiento de -- SANTO TOME --
 dir_SantoTome = "Raster/SantoTome_final"
@@ -988,27 +1068,24 @@ datos_sin_tocar_Rentillas = tratamiento_datos_sin_tocar_Rentillas(datos_sin_toca
 datos = union_datos(datos_SantoTome, datos_Berrueco, datos_Lupion)
 
 
-# Liberacion de memoria
-#del datos_SantoTome
-#del datos_Berrueco
-#del datos_Lupion
-#del datos_Rentillas
-
-
 # Eliminacion de variables
 datos = eliminacion_variables(datos)
 
+"""
+-- IMPORTANTE --
+Solo descomentar la zona a predecir
+"""
 # Rentillas
-datos_sin_tocar_Rentillas = eliminacion_variables(datos_sin_tocar_Rentillas)
+#datos_sin_tocar_Rentillas = eliminacion_variables(datos_sin_tocar_Rentillas)
 
 # Lupion
-#Cdatos_sin_tocar_Lupion = eliminacion_variables(datos_sin_tocar_Lupion)
+#datos_sin_tocar_Lupion = eliminacion_variables(datos_sin_tocar_Lupion)
 
 # Berrueco
 #datos_sin_tocar_Berrueco = eliminacion_variables(datos_sin_tocar_Berrueco)
 
 # Santo Tome
-#datos_sin_tocar_SantoTome = eliminacion_variables(datos_sin_tocar_SantoTome)
+datos_sin_tocar_SantoTome = eliminacion_variables(datos_sin_tocar_SantoTome)
 
 
 # Separacion de datos en X e Y
@@ -1021,36 +1098,45 @@ X = datos
 valos_desequilibrio = math.sqrt(Y.value_counts()[0]/Y.value_counts()[1])
 
 
+
 # Realizacion de modelo
 print("\n-- Creando modelo --")
 modelo = modelo_XGBoost(eta, profundidad, estimadores, valos_desequilibrio)
 print("\n-- Entrenando modelo --")
 modelo.fit(X, Y)
 
+"""
+-- IMPORTANTE --
+Descomentar la carga del modelo si ya tienes un modelo generado, si haces esto, comentar todos
+los pasos relacionados con la generacion del modelo anteriormente
+"""
+# Carga de modelo
+# modelo = pickle.load(open("Modelos/modelo_general_1_variables", "rb"))
+
 
 # Prediccion probabilidades
 print("\n-- Realizando predicción probabilidad --")
-prediccion_prob = modelo.predict_proba(datos_sin_tocar_Rentillas)
+prediccion_prob = modelo.predict_proba(datos_sin_tocar_SantoTome)
 
 
 # Separacion para prediccion normal
-datos_Rentillas = eliminacion_variables(datos_Rentillas)
-Y_2 = datos_Rentillas.Carcavas
-datos_Rentillas = datos_Rentillas.drop(['Carcavas'], axis=1)
-X_2 = datos_Rentillas 
+datos_SantoTome = eliminacion_variables(datos_SantoTome)
+Y_2 = datos_SantoTome.Carcavas
+datos_SantoTome = datos_SantoTome.drop(['Carcavas'], axis=1)
+X_2 = datos_SantoTome 
 
 
 # Validaciones normales
 print("\n-- Realizando predicción normal y validaciones --")
-# validaciones_modelo(modelo, X_2, Y_2)
+validaciones_modelo(modelo, X_2, Y_2)
 
 
 # Mapa de susceptibilidad
-array_color = dibujo_mapa("Rentillas", prediccion_prob, datos_Rentillas_dibujado, x_Rentillas, y_Rentillas)
+array_color = dibujo_mapa("SantoTome", prediccion_prob, datos_SantoTome_dibujado, x_SantoTome, y_SantoTome)
 
 
 # Mapa de susceptibilidad
-dibujar_mapa_2(array_color, x_Rentillas-1, y_Rentillas-1)
+dibujar_mapa_2(array_color, x_SantoTome-1, y_SantoTome-1)
 
 
 # Custom bar
@@ -1058,7 +1144,7 @@ dibujarCustomBar()
 
 
 # A CSV para pasar a TIF
-preparacion_TIF(array_color, x_Rentillas-1, y_Rentillas-1, "CSV/Rentillas_Prob.csv")
+preparacion_TIF(array_color, x_SantoTome-1, y_SantoTome-1, "CSV/SantoTome_Prob_General.csv")
 
 
 
