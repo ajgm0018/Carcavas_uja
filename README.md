@@ -11,7 +11,7 @@ Codigo para la realización de predicción de diferentes zonas geográficas en l
 
 library(raster)
 
-r <- raster(<archivo>.tif) (archivo ya existente)
+r <- raster(<archivo>.tif) (archivo ya existente cualquiera perteneciente a la zona geografica)
   
 matriz <- read.csv(URL, header = FALSE)
           
